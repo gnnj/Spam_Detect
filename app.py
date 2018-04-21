@@ -20,7 +20,7 @@ graph = None
 def load_model():
     global model
     global graph
-    model = keras.models.load_model("data"/"INSERT MODEL HERE")
+    model = keras.models.load_model(".DS_Store")
     graph = K.get_session().graph
 
 load_model()
@@ -36,7 +36,7 @@ def prepare_text(text):
     image = 1 - image
     return image.flatten().reshape(-1, 28*28)
 
-
+#get element id
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     data = {"success": False}
@@ -63,8 +63,8 @@ def upload_file():
             with graph.as_default():
 
                 # Use the model to make a prediction
-                predicted_digit = model.predict_classes(image_preprocessed)[0]
-                data["prediction"] = str(predicted_digit)
+                predicted_output = model.predict_classes(image_preprocessed)[0]
+                data["prediction"] = str(predicted_output)
 
                 # indicate that the request was a success
                 data["success"] = True
