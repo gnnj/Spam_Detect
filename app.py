@@ -4,74 +4,55 @@ import numpy as np
 from PIL import Image
 import base64
 
-import tensorflow as tf
+# %matplotlib inline
+import matplotlib.pyplot as plt
+import csv
+from textblob import TextBlob
+import pandas as pd
+import sklearn
+from sklearn.externals import joblib
+import _pickle as pickle
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import SVC, LinearSVC
+from sklearn.metrics import classification_report, f1_score, accuracy_score, confusion_matrix
+from sklearn.pipeline import Pipeline
+from sklearn.grid_search import GridSearchCV
+from sklearn.cross_validation import StratifiedKFold, cross_val_score, train_test_split 
+from sklearn.tree import DecisionTreeClassifier 
+from sklearn.learning_curve import learning_curve
 
-import keras
-from keras.preprocessing import image
-from keras.preprocessing.image import img_to_array
-from keras import backend as K
+import tensorflow as tf
 
 from flask import Flask, request, redirect, jsonify, render_template
 
 app = Flask(__name__)
-model = None
-graph = None
 
-def load_model():
-    global model
-    global graph
-    model = keras.models.load_model(".DS_Store")
-    graph = K.get_session().graph
+def split_into_tokens(sms):
+    return TextBlob(sms).words
 
-load_model()
+def split_into_lemmas(message):
+    message = message.lower()
+    words = TextBlob(message).words
+    # for each word, take its "base form" = lemma 
+    return [word.lemma for word in words]
 
-def prepare_text(text):
-    if image.mode != "RGB":
-        image = image.convert("RGB")
-    image_size = (28, 28)
-    image = image.resize(image_size)
-    # image.save("fromform.png")
-    image = img_to_array(image)[:,:,0]
-    image /= 255
-    image = 1 - image
-    return image.flatten().reshape(-1, 28*28)
+spam_detect = pickle.load(open('sms_spam_detector.pkl', 'rb'))
 
-#get element id
-@app.route('/', methods=['GET', 'POST'])
-def upload_file():
-    data = {"success": False}
-    if request.method == 'POST':
-        if request.form.get('digit'):
-            # read the base64 encoded string
-            #data = request.form.id.
-            image_string = request.form.get('digit')
+@app.route('/send', methods=['post'])
+def signup():
+    sms_message = request.form['text']
+    sms = []
+    sms.append(sms_message)
+    result = spam_detect.predict(sms)
+    return (result[0])
 
-            # Remove the header
-            image_string = image_string.replace("data:image/png;base64,", "")
+@app.route('/')
+def run():
+    return render_template('index.html')
 
-            # Decode the string
-            image_data = base64.b64decode(image_string)
-
-            # Open the image
-            image = Image.open(io.BytesIO(image_data))
-
-            # Preprocess the image and prepare it for classification
-            image_preprocessed = prepare_image(image)
-
-            # Get the tensorflow default graph
-            global graph
-            with graph.as_default():
-
-                # Use the model to make a prediction
-                predicted_output = model.predict_classes(image_preprocessed)[0]
-                data["prediction"] = str(predicted_output)
-
-                # indicate that the request was a success
-                data["success"] = True
-
-        return jsonify(data)
-    return render_template("index.html")
 
 if __name__ == "__main__":
-    load_model()
+
     app.run(debug=True)
